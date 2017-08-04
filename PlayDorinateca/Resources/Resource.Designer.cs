@@ -63,6 +63,15 @@ namespace PlayDorinateca
 			// aapt resource value: 0x7f050000
 			public const int MyButton = 2131034112;
 			
+			// aapt resource value: 0x7f050001
+			public const int button1 = 2131034113;
+			
+			// aapt resource value: 0x7f050002
+			public const int button2 = 2131034114;
+			
+			// aapt resource value: 0x7f050003
+			public const int textView1 = 2131034115;
+			
 			static Id()
 			{
 				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
@@ -92,11 +101,8 @@ namespace PlayDorinateca
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f040001
-			public const int ApplicationName = 2130968577;
-			
 			// aapt resource value: 0x7f040000
-			public const int Hello = 2130968576;
+			public const int ApplicationName = 2130968576;
 			
 			static String()
 			{
