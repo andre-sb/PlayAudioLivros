@@ -9,11 +9,12 @@ using System.Collections.Generic;
 using System.IO;
 using Android.Media;
 using System.Threading.Tasks;
+using Android.Speech.Tts;
 
 namespace PlayDorinateca
 {
     [Activity(Label = "PlayDorinateca", MainLauncher = true, Icon = "@drawable/icon")]
-    public class MainActivity : Activity
+    public class MainActivity : Activity, TextToSpeech.IOnInitListener
     {
         protected TextView txt;
         protected FileSystemInfo[] top_level;
@@ -24,6 +25,10 @@ namespace PlayDorinateca
 
         protected MediaPlayer player = null;
         protected string filePath;
+
+        TextToSpeech textToSpeech;
+        Java.Util.Locale lang;
+        private readonly int NeedLang = 103;
 
         protected override void OnCreate(Bundle bundle)
         {
@@ -50,6 +55,41 @@ namespace PlayDorinateca
 
             Button buttonFim = FindViewById<Button>(Resource.Id.button2);
             buttonFim.Click += delegate { StopPlayer(); };
+
+            // set up the TextToSpeech object
+            // third parameter is the speech engine to use
+            textToSpeech = new TextToSpeech(this, this);
+
+            // set up the speech to use the default langauge
+            // if a language is not available, then the default language is used.
+            lang = Java.Util.Locale.Default;
+            textToSpeech.SetLanguage(lang);
+
+            // set the speed and pitch
+            textToSpeech.SetPitch(.5f);
+            textToSpeech.SetSpeechRate(.5f);
+        }
+
+        // Interface method required for IOnInitListener
+        void TextToSpeech.IOnInitListener.OnInit(OperationResult status)
+        {
+            // if we get an error, default to the default language
+            if (status == OperationResult.Error)
+                textToSpeech.SetLanguage(Java.Util.Locale.Default);
+            // if the listener is ok, set the lang
+            if (status == OperationResult.Success)
+                textToSpeech.SetLanguage(lang);
+        }
+
+        protected override void OnActivityResult(int req, Result res, Intent data)
+        {
+            if (req == NeedLang)
+            {
+                // we need a new language installed
+                var installTTS = new Intent();
+                installTTS.SetAction(TextToSpeech.Engine.ActionInstallTtsData);
+                StartActivity(installTTS);
+            }
         }
 
         public void NextFolder()
@@ -60,9 +100,11 @@ namespace PlayDorinateca
             {
                 current_dir = 0;
                 AddTxt("Livro reiniciado.");
+                textToSpeech.Speak("Restarting the book", QueueMode.Flush, null);
             }
 
             AddTxt(top_level[current_dir].Name);
+            textToSpeech.Speak(top_level[current_dir].Name, QueueMode.Add, null);
 
             var dir = new DirectoryInfo(top_level[current_dir].FullName);
             files = dir.GetFileSystemInfos();
@@ -81,6 +123,7 @@ namespace PlayDorinateca
             StopPlayer();
             filePath = files[current_file].FullName;
             AddTxt(filePath);
+
             StartPlayerAsync();
 
             current_file++;
