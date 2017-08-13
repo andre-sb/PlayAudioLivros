@@ -41,11 +41,10 @@ namespace PlayDorinateca
 
             var dir = new DirectoryInfo("/sdcard/Guerra e Paz");
             top_level = dir.GetFileSystemInfos();
-            current_dir = 0;
+            current_dir = -1;
 
-            dir = new DirectoryInfo(top_level[current_dir].FullName);
-            files = dir.GetFileSystemInfos();
-            current_file = 0;
+
+            current_file = -1;
 
             Button buttonNextFolder = FindViewById<Button>(Resource.Id.MyButton);
             buttonNextFolder.Click += delegate { NextFolder(); };
@@ -54,7 +53,7 @@ namespace PlayDorinateca
             buttonNextFile.Click += delegate { NextFile(); };
 
             Button buttonFim = FindViewById<Button>(Resource.Id.button2);
-            buttonFim.Click += delegate { StopPlayer(); };
+            buttonFim.Click += delegate { PausePlayer(); };
 
             // set up the TextToSpeech object
             // third parameter is the speech engine to use
@@ -92,10 +91,16 @@ namespace PlayDorinateca
             }
         }
 
+        protected override void OnStop()
+        {
+            StopPlayer();
+        }
+
         public void NextFolder()
         {
             StopPlayer();
 
+            current_dir++;
             if (current_dir >= top_level.Length)
             {
                 current_dir = 0;
@@ -108,16 +113,16 @@ namespace PlayDorinateca
 
             var dir = new DirectoryInfo(top_level[current_dir].FullName);
             files = dir.GetFileSystemInfos();
-            current_file = 0;
-
-            current_dir++;
+            current_file = -1;
         }
 
         public void NextFile()
         {
-            if (current_file >= files.Length)
+            current_file++;
+            if ( (current_dir == -1) || (files==null) || (files.Length==0) || (current_file >= files.Length) )
             {
                 NextFolder();
+                current_file = 0;
             }
 
             StopPlayer();
@@ -125,9 +130,8 @@ namespace PlayDorinateca
             AddTxt(filePath);
 
             StartPlayerAsync();
-
-            current_file++;
         }
+
 
         protected void AddTxt(string s)
         {
@@ -172,6 +176,21 @@ namespace PlayDorinateca
                 }
                 player.Release();
                 player = null;
+            }
+        }
+
+        public void PausePlayer()
+        {
+            if ((player != null))
+            {
+                if (player.IsPlaying)
+                {
+                    player.Pause();
+                }
+                else
+                {
+                    player.Start();
+                }
             }
         }
     }
