@@ -10,6 +10,7 @@ using System.IO;
 using Android.Media;
 using System.Threading.Tasks;
 using Android.Speech.Tts;
+using Android.Content.Res;
 
 namespace PlayDorinateca
 {
@@ -30,6 +31,8 @@ namespace PlayDorinateca
         Java.Util.Locale lang;
         private readonly int NeedLang = 103;
 
+        private string persist_file;
+
         protected override void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
@@ -39,12 +42,50 @@ namespace PlayDorinateca
 
             txt = FindViewById<TextView>(Resource.Id.textView1);
 
+            persist_file = this.FilesDir.AbsolutePath + "/CurrentBook.txt";
+
+            try { 
+                if (File.Exists(persist_file) == false)
+                {
+                    using (StreamWriter sr = new StreamWriter(persist_file))
+                    {
+                        sr.WriteLine("-1");
+                        sr.WriteLine("-1");
+                        sr.Flush();
+                    }
+                    AddTxt("File created");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddTxt(ex.ToString().Substring(0, 300));
+            }
+
+            current_dir = -2;
+            current_file = -2;
+
+            // Read the contents of the file
+            string content;
+            using (StreamReader sr = new StreamReader(persist_file))
+            {
+                content = sr.ReadLine();
+                current_dir = Int32.Parse(content);
+                AddTxt("Dir: " + current_dir.ToString());
+
+                content = sr.ReadLine();
+                current_file = Int32.Parse(content);
+                AddTxt("File: " + current_file.ToString());
+            }
+            if ( (current_dir==-2) || (current_file==-2) ) {
+                AddTxt("File CurrentBook.txt was corrupted");
+                current_dir = -1;
+                current_file = -1;
+            }
+
             var dir = new DirectoryInfo("/sdcard/Guerra e Paz");
             top_level = dir.GetFileSystemInfos();
-            current_dir = -1;
-
-
-            current_file = -1;
+            dir = new DirectoryInfo(top_level[current_dir].FullName);
+            files = dir.GetFileSystemInfos();
 
             Button buttonNextFolder = FindViewById<Button>(Resource.Id.MyButton);
             buttonNextFolder.Click += delegate { NextFolder(); };
@@ -78,6 +119,20 @@ namespace PlayDorinateca
             // if the listener is ok, set the lang
             if (status == OperationResult.Success)
                 textToSpeech.SetLanguage(lang);
+
+
+            if ((current_dir != -1) && (current_file != -1))
+            {
+                string a = string.Format("Continuing the book from folder {0}, chapter {1}", current_dir, current_file + 1);
+                textToSpeech.Speak(a, QueueMode.Flush, null);
+                Task.Delay(3500).Wait();
+
+                StopPlayer();
+                filePath = files[current_file].FullName;
+                AddTxt(filePath);
+
+                StartPlayerAsync();
+            }
         }
 
         protected override void OnActivityResult(int req, Result res, Intent data)
@@ -130,8 +185,22 @@ namespace PlayDorinateca
             AddTxt(filePath);
 
             StartPlayerAsync();
-        }
 
+            // Write the new current file to the asset
+            try
+            {
+                using (StreamWriter sr = new StreamWriter(persist_file))
+                {
+                    sr.WriteLine(current_dir);
+                    sr.WriteLine(current_file);
+                    sr.Flush();
+                }
+            }
+            catch (Exception ex)
+            {
+                AddTxt(ex.ToString().Substring(0, 300));
+            }
+        }
 
         protected void AddTxt(string s)
         {
